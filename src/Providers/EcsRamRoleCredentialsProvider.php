@@ -8,6 +8,7 @@ use AlibabaCloud\Credentials\Request\Request;
 use GuzzleHttp\Exception\GuzzleException;
 use InvalidArgumentException;
 use RuntimeException;
+use AlibabaCloud\Credentials\Credential\RefreshResult;
 
 /**
  * @internal This class is intended for internal use within the package. 
@@ -116,7 +117,7 @@ class EcsRamRoleCredentialsProvider extends SessionCredentialsProvider
     /**
      * Get credentials by request.
      *
-     * @return array
+     * @return RefreshResult
      * @throws InvalidArgumentException
      * @throws RuntimeException
      * @throws GuzzleException
@@ -153,7 +154,7 @@ class EcsRamRoleCredentialsProvider extends SessionCredentialsProvider
             throw new RuntimeException('Error retrieving credentials from IMDS result, Code is not Success:' . $result->toJson());
         }
 
-        return $credentials;
+        return new RefreshResult($credentials, $this->getStaleTime(strtotime($credentials["Expiration"])), $this->getPrefetchTime(strtotime($credentials["Expiration"])));
     }
 
     /**
@@ -221,6 +222,14 @@ class EcsRamRoleCredentialsProvider extends SessionCredentialsProvider
         return (string) $result;
     }
 
+    /**
+     * @var int
+     */
+    public function getPrefetchTime($expiration) {
+        return $expiration <= 0 ?
+            time() + (5 * 60) :
+            time() + (60 * 60);
+    }
 
     /**
      * @return string
